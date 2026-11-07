@@ -22,6 +22,18 @@ class DummyJsonService
         return $response->json()['products'] ?? [];
     }
 
+    public function getCategories()
+    {
+        $response = Http::get("{$this->baseUrl}/categories");
+        return $response->json() ?? [];
+    }
+
+    public function getProductsByCategory(string $slug)
+    {
+        $response = Http::get("{$this->baseUrl}/category/{$slug}");
+        return $response->json()['products'] ?? [];
+    }
+
     public function getProduct($id)
     {
         $response = Http::get("{$this->baseUrl}/{$id}");

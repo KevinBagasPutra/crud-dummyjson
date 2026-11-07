@@ -14,15 +14,27 @@ class ProductController extends Controller
         $this->service = $service;
     }
 
-    public function index(Request $request)
+    public function index(Request $request, ?string $slug = null)
     {
         $search = $request->query('q');
+        $category = $slug ?? $request->query('category');
+        $categories = $this->service->getCategories();
 
-        $products = filled($search)
-            ? $this->service->searchProducts($search)
-            : $this->service->getProducts();
+        if (filled($search)) {
+            $products = $this->service->searchProducts($search);
+            if (filled($category)) {
+                $products = array_values(array_filter(
+                    $products,
+                    fn ($p) => ($p['category'] ?? '') === $category
+                ));
+            }
+        } elseif (filled($category)) {
+            $products = $this->service->getProductsByCategory($category);
+        } else {
+            $products = $this->service->getProducts();
+        }
 
-        return view('products.index', compact('products', 'search'));
+        return view('products.index', compact('products', 'categories', 'search', 'category'));
     }
 
     public function create()
