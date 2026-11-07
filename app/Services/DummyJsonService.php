@@ -2,42 +2,47 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
 class DummyJsonService
 {
-    protected function client(): PendingRequest
+    protected $baseUrl = 'https://dummyjson.com/products';
+
+    public function getProducts()
     {
-        return Http::baseUrl(config('services.dummyjson.url'))
-            ->acceptJson()
-            ->timeout(15);
+        $response = Http::get($this->baseUrl);
+        return $response->json()['products'] ?? [];
     }
 
-    public function all(int $limit = 10, int $skip = 0): array
+    public function searchProducts(string $query)
     {
-        return $this->client()
-            ->get('/products', ['limit' => $limit, 'skip' => $skip])
-            ->throw()->json();
+        $response = Http::get("{$this->baseUrl}/search", [
+            'q' => $query,
+        ]);
+        return $response->json()['products'] ?? [];
     }
 
-    public function find(int $id): array
+    public function getProduct($id)
     {
-        return $this->client()->get("/products/{$id}")->throw()->json();
+        $response = Http::get("{$this->baseUrl}/{$id}");
+        return $response->json();
     }
 
-    public function create(array $data): array
+    public function createProduct($data)
     {
-        return $this->client()->post('/products/add', $data)->throw()->json();
+        $response = Http::post("{$this->baseUrl}/add", $data);
+        return $response->json();
     }
 
-    public function update(int $id, array $data): array
+    public function updateProduct($id, $data)
     {
-        return $this->client()->put("/products/{$id}", $data)->throw()->json();
+        $response = Http::put("{$this->baseUrl}/{$id}", $data);
+        return $response->json();
     }
 
-    public function delete(int $id): array
+    public function deleteProduct($id)
     {
-        return $this->client()->delete("/products/{$id}")->throw()->json();
+        $response = Http::delete("{$this->baseUrl}/{$id}");
+        return $response->json();
     }
 }

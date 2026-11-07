@@ -7,19 +7,22 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function __construct(protected DummyJsonService $api) {}
+    protected $service;
+
+    public function __construct(DummyJsonService $service)
+    {
+        $this->service = $service;
+    }
 
     public function index(Request $request)
     {
-        $limit = 10;
-        $page  = max((int) $request->query('page', 1), 1);
-        $data  = $this->api->all($limit, ($page - 1) * $limit);
+        $search = $request->query('q');
 
-        return view('products.index', [
-            'products' => $data['products'],
-            'page'     => $page,
-            'lastPage' => (int) ceil($data['total'] / $limit),
-        ]);
+        $products = filled($search)
+            ? $this->service->searchProducts($search)
+            : $this->service->getProducts();
+
+        return view('products.index', compact('products', 'search'));
     }
 
     public function create()
@@ -29,47 +32,47 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate($this->rules());
-        $result = $this->api->create($validated);
+        $data = $request->validate([
+            'title' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric',
+            'category' => 'nullable',
+        ]);
 
-        return redirect()->route('products.index')
-            ->with('success', "Produk \"{$result['title']}\" berhasil dibuat (ID: {$result['id']}).");
+        $this->service->createProduct($data);
+
+        return redirect()->route('products.index')->with('success', 'Produk berhasil ditambahkan (simulasi DummyJSON).');
     }
 
-    public function show(int $id)
+    public function show($id)
     {
-        return view('products.show', ['product' => $this->api->find($id)]);
+        $product = $this->service->getProduct($id);
+        return view('products.show', compact('product'));
     }
 
-    public function edit(int $id)
+    public function edit($id)
     {
-        return view('products.edit', ['product' => $this->api->find($id)]);
+        $product = $this->service->getProduct($id);
+        return view('products.edit', compact('product'));
     }
 
-    public function update(Request $request, int $id)
+    public function update(Request $request, $id)
     {
-        $validated = $request->validate($this->rules());
-        $this->api->update($id, $validated);
+        $data = $request->validate([
+            'title' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric',
+            'category' => 'nullable',
+        ]);
 
-        return redirect()->route('products.show', $id)
-            ->with('success', 'Produk berhasil diperbarui.');
+        $this->service->updateProduct($id, $data);
+
+        return redirect()->route('products.index')->with('success', 'Produk berhasil diupdate (simulasi DummyJSON).');
     }
 
-    public function destroy(int $id)
+    public function destroy($id)
     {
-        $this->api->delete($id);
-
-        return redirect()->route('products.index')
-            ->with('success', 'Produk berhasil dihapus.');
-    }
-
-    protected function rules(): array
-    {
-        return [
-            'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0',
-            'category'    => 'nullable|string|max:100',
-        ];
+        $this->service->deleteProduct($id);
+        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus (simulasi DummyJSON).');
     }
 }
